@@ -1,0 +1,123 @@
+// MediumBot Prisma Şeması
+// ID Mapping: Her ana tablo için ayrı mapping tablosu vardır
+// Bu sayede frontend asla gerçek veritabanı ID'lerini görmez
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Kullanıcı tablosu
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  avatar    String?
+  apiKey    String?  // Google Gemini API anahtarı
+  theme     Theme    @default(SYSTEM)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // İlişkiler
+  sessions        Session[]
+  posts           Post[]
+  geminiRequests  GeminiRequest[]
+  // ID Mapping ilişkisi
+  userMapping     UserMapping?
+
+  @@map("users")
+}
+
+// Kullanıcı ID mapping tablosu
+// Frontend bu public_id'yi görür, backend gerçek id ile çalışır
+model UserMapping {
+  id        String   @id @default(cuid())
+  publicId  String   @unique @default(cuid()) // Frontend'in gördüğü ID
+  userId    String   @unique                  // Gerçek veritabanı ID
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_mappings")
+}
+
+// Oturum tablosu - Refresh token yönetimi için
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  userAgent    String?
+  ip           String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Blog yazısı tablosu
+model Post {
+  id          String     @id @default(cuid())
+  userId      String
+  title       String
+  content     String     @db.Text
+  excerpt     String?
+  coverImage  String?
+  tags        String[]   @default([])
+  status      PostStatus @default(DRAFT)
+  mediumUrl   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // ID Mapping ilişkisi
+  postMapping PostMapping?
+
+  @@map("posts")
+}
+
+// Post ID mapping tablosu
+model PostMapping {
+  id        String   @id @default(cuid())
+  publicId  String   @unique @default(cuid()) // Frontend'in gördüğü ID
+  postId    String   @unique                  // Gerçek veritabanı ID
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_mappings")
+}
+
+// Gemini API istek logu
+model GeminiRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  prompt    String   @db.Text
+  response  String   @db.Text
+  model     String   @default("gemini-pro")
+  tokens    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("gemini_requests")
+}
+
+// Enum'lar
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}

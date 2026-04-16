@@ -1,0 +1,21 @@
+{
+  "name": "mediumbot",
+  "version": "1.0.0",
+  "description": "AI-powered content platform (monorepo)",
+  "private": true,
+  "scripts": {
+    "dev": "npm -w backend run dev",
+    "dev:backend": "npm -w backend run dev",
+    "dev:frontend": "npm -w frontend run dev",
+    "build": "npm -w backend run build && npm -w frontend run build",
+    "start": "npm -w backend run start",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
+}
